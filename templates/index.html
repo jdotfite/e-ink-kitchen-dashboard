@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>E-ink Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #111827;
+      min-height: 100vh;
+    }
+    header {
+      background: #1e293b;
+      color: #fff;
+      padding: 16px 20px 14px;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 600; }
+    header p { font-size: 0.78rem; color: #94a3b8; margin-top: 3px; }
+    header p span { color: #cbd5e1; }
+
+    main { padding: 14px 14px 32px; max-width: 560px; margin: 0 auto; }
+    section { margin-bottom: 18px; }
+    section > h2 {
+      font-size: 0.7rem; font-weight: 600; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 7px; padding-left: 2px;
+    }
+    .card { background: #fff; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.09); }
+
+    /* Status rows */
+    .comp-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .comp-row:last-of-type { border-bottom: none; }
+    .comp-row .name { font-size: 0.9rem; font-weight: 500; flex: 1; }
+    .comp-row .time { font-size: 0.76rem; color: #9ca3af; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: inherit; font-weight: 500; transition: opacity .15s;
+    }
+    .btn:active { opacity: .65; }
+    .btn-primary { background: #2563eb; color: #fff; font-size: .88rem; padding: 9px 16px; }
+    .btn-danger  { background: #dc2626; color: #fff; font-size: .82rem; padding: 7px 12px; }
+    .btn-full { width: 100%; margin-top: 12px; padding: 12px; font-size: .95rem; }
+    .icon-btn {
+      background: #eff6ff; color: #2563eb;
+      border: 1px solid #dbeafe;
+      border-radius: 7px; padding: 6px 10px;
+      font-size: .78rem; font-weight: 600; cursor: pointer;
+      white-space: nowrap;
+    }
+    .icon-btn:active { background: #dbeafe; }
+
+    /* Form elements */
+    label {
+      display: block; font-size: .82rem; font-weight: 500;
+      color: #374151; margin-bottom: 5px; margin-top: 13px;
+    }
+    label:first-child { margin-top: 0; }
+    label small { font-weight: 400; color: #9ca3af; }
+    input[type="number"], input[type="text"], textarea {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      font-size: .88rem; font-family: inherit; background: #fafafa;
+      transition: border-color .15s;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #2563eb; background: #fff; }
+    textarea { min-height: 72px; resize: vertical; }
+    .inline-row { display: flex; align-items: center; gap: 8px; }
+    .inline-row input { flex: 1; }
+    .inline-row span { font-size: .82rem; color: #6b7280; white-space: nowrap; }
+
+    /* Duration buttons */
+    .dur-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .dur-btn {
+      padding: 10px 4px; border: 1px solid #e5e7eb; border-radius: 8px;
+      background: #f9fafb; cursor: pointer; font-size: .82rem; font-weight: 500;
+      color: #374151; text-align: center; transition: all .15s;
+    }
+    .dur-btn.on { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+    .dur-btn:active { opacity: .7; }
+
+    /* Active reminder alert */
+    .reminder-alert {
+      background: #fffbeb; border: 1px solid #fcd34d;
+      border-radius: 8px; padding: 11px 13px; margin-bottom: 12px;
+      font-size: .85rem;
+    }
+    .reminder-alert strong { display: block; font-size: .78rem; color: #92400e; margin-bottom: 3px; }
+    .reminder-alert .rem-text { color: #1f2937; font-weight: 500; }
+    .reminder-alert .rem-expires { font-size: .75rem; color: #9ca3af; margin-top: 4px; }
+    .reminder-alert-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+    /* Next-run info */
+    .next-info { font-size: .74rem; color: #9ca3af; margin-top: 10px; line-height: 1.7; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: #fff; padding: 9px 18px;
+      border-radius: 20px; font-size: .82rem; font-weight: 500;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+      z-index: 999; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>E-ink Dashboard</h1>
+  <p>Last display update: <span id="last-display">—</span></p>
+</header>
+
+<main>
+
+  <!-- ── Status ── -->
+  <section>
+    <h2>Data Status</h2>
+    <div class="card">
+      <div class="comp-row">
+        <span class="name">🌡️ Weather</span>
+        <span class="time" id="weather-time">—</span>
+        <button class="icon-btn" onclick="doRefresh('weather')">↻ Refresh</button>
+      </div>
+      <div class="comp-row">
+        <span class="name">📅 Calendar, Grocery &amp; Facts</span>
+        <span class="time" id="family-time">—</span>
+        <button class="icon-btn" onclick="doRefresh('family')">↻ Refresh</button>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="doRefresh('all')">↻ Refresh All</button>
+    </div>
+  </section>
+
+  <!-- ── Schedule ── -->
+  <section>
+    <h2>Update Schedule</h2>
+    <div class="card">
+      <label>Weather interval</label>
+      <div class="inline-row">
+        <input type="number" id="weather-interval" min="1" max="1440" value="15">
+        <span>minutes</span>
+      </div>
+
+      <label>Calendar, Grocery &amp; Facts interval</label>
+      <div class="inline-row">
+        <input type="number" id="family-interval" min="1" max="1440" value="60">
+        <span>minutes</span>
+      </div>
+
+      <div class="next-info">
+        Next weather refresh: <span id="next-weather">—</span><br>
+        Next family refresh: <span id="next-family">—</span>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveSchedule()">Save Schedule</button>
+    </div>
+  </section>
+
+  <!-- ── Reminder ── -->
+  <section>
+    <h2>Manual Reminder</h2>
+    <div class="card">
+      <div id="active-reminder-box"></div>
+
+      <label>Title <small>(optional, defaults to "Reminder")</small></label>
+      <input type="text" id="rem-title" placeholder="Reminder">
+
+      <label>Message</label>
+      <textarea id="rem-text" placeholder="Enter reminder message..."></textarea>
+
+      <label>Show for</label>
+      <div class="dur-grid" id="dur-grid">
+        <button class="dur-btn" data-hrs="8"  onclick="pickDur(this,8)">8 hrs</button>
+        <button class="dur-btn" data-hrs="12" onclick="pickDur(this,12)">12 hrs</button>
+        <button class="dur-btn" data-hrs="24" onclick="pickDur(this,24)">24 hrs</button>
+        <button class="dur-btn" data-hrs="48" onclick="pickDur(this,48)">48 hrs</button>
+      </div>
+      <div class="inline-row" style="margin-top:8px">
+        <input type="number" id="rem-hours" placeholder="Custom" min="0.25" step="0.25" oninput="clearDurBtns()">
+        <span>hours</span>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="setReminder()">Set Reminder</button>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ── Duration picker ────────────────────────────────────────────────────────
+let pickedDuration = null;
+
+function pickDur(btn, hrs) {
+  pickedDuration = hrs;
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('rem-hours').value = '';
+}
+
+function clearDurBtns() {
+  pickedDuration = null;
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('on'));
+}
+
+// ── Formatting ─────────────────────────────────────────────────────────────
+function fmtDt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ── Active reminder box ────────────────────────────────────────────────────
+function renderReminderBox(r) {
+  const box = document.getElementById('active-reminder-box');
+  if (!r || !r.text) { box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <div class="reminder-alert">
+      <strong>ACTIVE REMINDER</strong>
+      <div class="rem-text">${escHtml(r.text)}</div>
+      <div class="rem-expires">Expires ${fmtDt(r.expires_at)}</div>
+      <div class="reminder-alert-footer">
+        <button class="btn btn-danger" onclick="clearReminder()">Clear</button>
+      </div>
+    </div>`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Status polling ─────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    document.getElementById('last-display').textContent = fmtDt(s.last_display);
+    document.getElementById('weather-time').textContent = fmtDt(s.weather_fetched_at);
+    document.getElementById('family-time').textContent = fmtDt(s.family_fetched_at);
+    document.getElementById('next-weather').textContent = fmtDt(s.next_weather);
+    document.getElementById('next-family').textContent = s.next_family ? fmtDt(s.next_family) : 'Not scheduled';
+    renderReminderBox(s.active_reminder);
+  } catch(e) { /* network hiccup, ignore */ }
+}
+
+// ── Refresh ────────────────────────────────────────────────────────────────
+async function doRefresh(what) {
+  toast('Triggering refresh…');
+  try {
+    await fetch('/api/refresh/' + what, {method: 'POST'});
+    toast('Refresh triggered ✓');
+    setTimeout(loadStatus, 12000);
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+// ── Schedule ───────────────────────────────────────────────────────────────
+async function loadSchedule() {
+  try {
+    const res = await fetch('/api/schedule');
+    const s = await res.json();
+    document.getElementById('weather-interval').value = s.weather_interval_minutes || 15;
+    document.getElementById('family-interval').value = s.secondary_interval_minutes || 60;
+  } catch(e) { /* use defaults */ }
+}
+
+async function saveSchedule() {
+  const weatherInterval = parseInt(document.getElementById('weather-interval').value, 10);
+  const familyInterval  = parseInt(document.getElementById('family-interval').value, 10);
+  if (!weatherInterval || weatherInterval < 1) { toast('Enter a valid weather interval'); return; }
+  if (!familyInterval  || familyInterval  < 1) { toast('Enter a valid family interval');  return; }
+  const body = {
+    weather_interval_minutes: weatherInterval,
+    secondary_interval_minutes: familyInterval,
+  };
+  try {
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (res.ok) { toast('Schedule saved ✓'); loadStatus(); }
+    else { toast('Error saving schedule'); }
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+// ── Reminder ───────────────────────────────────────────────────────────────
+async function setReminder() {
+  const text = document.getElementById('rem-text').value.trim();
+  if (!text) { toast('Enter a reminder message'); return; }
+  const title = document.getElementById('rem-title').value.trim() || 'Reminder';
+  const customHrs = parseFloat(document.getElementById('rem-hours').value);
+  const hours = (!isNaN(customHrs) && customHrs > 0) ? customHrs : pickedDuration;
+  if (!hours) { toast('Select or enter a duration'); return; }
+
+  try {
+    const res = await fetch('/api/reminder', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title, text, duration_hours: hours}),
+    });
+    if (res.ok) {
+      toast('Reminder set ✓');
+      document.getElementById('rem-text').value = '';
+      document.getElementById('rem-title').value = '';
+      document.getElementById('rem-hours').value = '';
+      clearDurBtns();
+      setTimeout(loadStatus, 3000);
+    } else {
+      const err = await res.json();
+      toast('Error: ' + (err.error || 'unknown'));
+    }
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function clearReminder() {
+  try {
+    await fetch('/api/reminder', {method: 'DELETE'});
+    toast('Reminder cleared ✓');
+    setTimeout(loadStatus, 3000);
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadSchedule();
+loadStatus();
+setInterval(loadStatus, 30000);
+</script>
+</body>
+</html>
