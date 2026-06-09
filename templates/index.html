@@ -351,6 +351,23 @@ async function clearReminder() {
 }
 
 // ── Deploy ─────────────────────────────────────────────────────────────────
+async function waitForRestart(out) {
+  const deadline = Date.now() + 30000;
+  await new Promise(r => setTimeout(r, 3000)); // give it a moment to actually exit
+  while (Date.now() < deadline) {
+    try {
+      const r = await fetch('/api/status');
+      if (r.ok) {
+        out.textContent += '\n\nService restarted ✓';
+        return true;
+      }
+    } catch(_) {}
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  out.textContent += '\n\nService did not respond within 30s — check Pi.';
+  return false;
+}
+
 async function doDeploy() {
   const btn = document.getElementById('deploy-btn');
   const out = document.getElementById('deploy-output');
@@ -362,19 +379,23 @@ async function doDeploy() {
     const data = await res.json();
     out.textContent = data.error || data.output || '';
     out.style.display = 'block';
-    if (data.restarting) {
-      toast('New code pulled — service restarting…');
+    if (data.error) {
+      toast('Deploy failed');
+      btn.disabled = false; btn.textContent = '⬇ Deploy Latest';
+    } else if (data.restarting) {
       btn.textContent = 'Restarting…';
-      setTimeout(() => { btn.disabled = false; btn.textContent = '⬇ Deploy Latest'; loadStatus(); }, 8000);
+      out.textContent += '\n\nRestarting service…';
+      await waitForRestart(out);
+      toast('Deployed ✓');
+      btn.disabled = false; btn.textContent = '⬇ Deploy Latest';
+      loadStatus();
     } else {
-      toast(data.error ? 'Deploy failed' : 'Already up to date');
-      btn.disabled = false;
-      btn.textContent = '⬇ Deploy Latest';
+      toast('Already up to date');
+      btn.disabled = false; btn.textContent = '⬇ Deploy Latest';
     }
   } catch(e) {
     toast('Deploy error: ' + e.message);
-    btn.disabled = false;
-    btn.textContent = '⬇ Deploy Latest';
+    btn.disabled = false; btn.textContent = '⬇ Deploy Latest';
   }
 }
 

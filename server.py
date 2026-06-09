@@ -274,9 +274,9 @@ def api_deploy():
         output = (result.stdout + result.stderr).strip()
         changed = result.returncode == 0 and "Already up to date" not in output
         if changed:
-            # Exit cleanly — systemd Restart=on-failure brings the process back up with new code
+            # Non-zero exit triggers Restart=on-failure so systemd brings the process back with new code
             threading.Thread(target=lambda: (
-                __import__("time").sleep(1), os._exit(0)
+                __import__("time").sleep(1), os._exit(1)
             ), daemon=True).start()
         return jsonify({"output": output or "Already up to date.", "restarting": changed})
     except Exception as exc:
