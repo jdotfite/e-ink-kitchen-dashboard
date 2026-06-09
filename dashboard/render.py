@@ -184,15 +184,15 @@ def _draw_weather(draw: ImageDraw.ImageDraw, image: Image.Image, report: Weather
     draw.text((date_x, 18), fitted, font=font, fill=BLACK)
     draw.text((date_x + 1, 18), fitted, font=font, fill=BLACK)
 
-    icon_y = 56
+    icon_y = 54
     icon_size = 112
     icon_center_y = _paste_icon(image, report.icon_code, (28, icon_y), icon_size)
-    _draw_centered_wrapped_bold(draw, 222, int(icon_center_y), report.description.title(), 166, 29, max_lines=2)
+    _draw_centered_wrapped_bold(draw, 222, int(icon_center_y) - 2, report.description.title(), 166, 29, max_lines=2)
 
     temp = f"{report.temp_current:.0f}°"
     temp_font = _font(91)
     tw, _ = _text_size(draw, temp, temp_font)
-    draw.text(((left_w - tw) // 2, 151), temp, font=temp_font, fill=BLACK)
+    draw.text(((left_w - tw) // 2, 148), temp, font=temp_font, fill=BLACK)
 
     feels_text = f"Feels {report.feels_like:.0f}{settings.temp_unit}  Rain {report.precip_percent:.0f}%"
     _draw_centered_bold(draw, left_w // 2, 255, feels_text, left_w - 40, 24, min_size=19)
