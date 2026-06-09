@@ -163,6 +163,16 @@
     </div>
   </section>
 
+  <!-- ── Deploy ── -->
+  <section>
+    <h2>Deployment</h2>
+    <div class="card">
+      <p style="font-size:.83rem;color:#6b7280;margin-bottom:12px">Pull latest code from GitHub and restart the service.</p>
+      <button class="btn btn-primary btn-full" onclick="doDeploy()" id="deploy-btn">⬇ Deploy Latest</button>
+      <pre id="deploy-output" style="display:none;margin-top:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:.78rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:#374151"></pre>
+    </div>
+  </section>
+
   <!-- ── Reminder ── -->
   <section>
     <h2>Manual Reminder</h2>
@@ -338,6 +348,34 @@ async function clearReminder() {
     toast('Reminder cleared ✓');
     setTimeout(loadStatus, 3000);
   } catch(e) { toast('Error: ' + e.message); }
+}
+
+// ── Deploy ─────────────────────────────────────────────────────────────────
+async function doDeploy() {
+  const btn = document.getElementById('deploy-btn');
+  const out = document.getElementById('deploy-output');
+  btn.disabled = true;
+  btn.textContent = 'Pulling…';
+  out.style.display = 'none';
+  try {
+    const res = await fetch('/api/deploy', {method: 'POST'});
+    const data = await res.json();
+    out.textContent = data.error || data.output || '';
+    out.style.display = 'block';
+    if (data.restarting) {
+      toast('New code pulled — service restarting…');
+      btn.textContent = 'Restarting…';
+      setTimeout(() => { btn.disabled = false; btn.textContent = '⬇ Deploy Latest'; loadStatus(); }, 8000);
+    } else {
+      toast(data.error ? 'Deploy failed' : 'Already up to date');
+      btn.disabled = false;
+      btn.textContent = '⬇ Deploy Latest';
+    }
+  } catch(e) {
+    toast('Deploy error: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '⬇ Deploy Latest';
+  }
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

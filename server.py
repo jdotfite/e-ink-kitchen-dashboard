@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import subprocess
 import threading
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
@@ -259,6 +261,26 @@ def api_clear_reminder():
     clear_reminder()
     threading.Thread(target=_do_render_only, daemon=True).start()
     return jsonify({"status": "cleared"})
+
+
+@app.route("/api/deploy", methods=["POST"])
+def api_deploy():
+    try:
+        result = subprocess.run(
+            ["git", "pull", "origin", "main"],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True, text=True, timeout=60,
+        )
+        output = (result.stdout + result.stderr).strip()
+        changed = result.returncode == 0 and "Already up to date" not in output
+        if changed:
+            # Exit cleanly — systemd Restart=on-failure brings the process back up with new code
+            threading.Thread(target=lambda: (
+                __import__("time").sleep(1), os._exit(0)
+            ), daemon=True).start()
+        return jsonify({"output": output or "Already up to date.", "restarting": changed})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
