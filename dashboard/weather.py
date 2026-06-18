@@ -68,7 +68,7 @@ def fetch_weather_data(settings: Settings) -> dict:
 
 def _forecast_days(data: dict) -> tuple[ForecastDay, ...]:
     days: list[ForecastDay] = []
-    for daily in data.get("daily", [])[:3]:
+    for daily in data.get("daily", [])[1:4]:
         label = datetime.fromtimestamp(int(daily.get("dt", 0)), tz=timezone.utc).strftime("%a")
         weather = (daily.get("weather") or [{}])[0]
         days.append(ForecastDay(
