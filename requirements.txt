@@ -2,6 +2,9 @@ pillow>=10.0
 requests>=2.31
 flask>=3.0
 APScheduler>=3.10,<4.0
+icalendar>=5.0
+recurring-ical-events>=3.0
+yfinance>=0.2
 spidev; platform_machine == "armv7l" or platform_machine == "aarch64"
 RPi.GPIO; platform_machine == "armv7l" or platform_machine == "aarch64"
 gpiozero; platform_machine == "armv7l" or platform_machine == "aarch64"

@@ -66,6 +66,8 @@ class Settings:
     lock_file: Path = PROJECT_ROOT / "dashboard.lock"
     dashboard_api_url: str = ""
     eink_api_token: str = ""
+    google_calendar_ical_url: str = ""
+    stock_tickers: tuple[str, ...] = ()
 
     @property
     def temp_unit(self) -> str:
@@ -99,6 +101,10 @@ def load_settings(env_path: Path | None = None) -> Settings:
         lock_file=PROJECT_ROOT / _get(env_file, "LOCK_FILE", "dashboard.lock"),
         dashboard_api_url=_get(env_file, "DASHBOARD_API_URL", ""),
         eink_api_token=_get(env_file, "EINK_API_TOKEN", ""),
+        google_calendar_ical_url=_get(env_file, "GOOGLE_CALENDAR_ICAL_URL", ""),
+        stock_tickers=tuple(
+            t.strip().upper() for t in _get(env_file, "STOCK_TICKERS", "").split(",") if t.strip()
+        ),
     )
 
 

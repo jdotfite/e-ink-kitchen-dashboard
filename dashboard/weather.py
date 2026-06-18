@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import logging
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 
@@ -67,13 +67,9 @@ def fetch_weather_data(settings: Settings) -> dict:
 
 
 def _forecast_days(data: dict) -> tuple[ForecastDay, ...]:
-    labels = ["Today", "Tomorrow"]
     days: list[ForecastDay] = []
-    for idx, daily in enumerate(data.get("daily", [])[:3]):
-        if idx < len(labels):
-            label = labels[idx]
-        else:
-            label = datetime.fromtimestamp(int(daily.get("dt", 0)), tz=timezone.utc).strftime("%a")
+    for daily in data.get("daily", [])[:3]:
+        label = datetime.fromtimestamp(int(daily.get("dt", 0)), tz=timezone.utc).strftime("%a")
         weather = (daily.get("weather") or [{}])[0]
         days.append(ForecastDay(
             label=label,
@@ -103,6 +99,24 @@ def process_weather_data(data: dict) -> WeatherReport:
     )
 
 
+def _sample_forecast_days() -> tuple[ForecastDay, ...]:
+    today = datetime.now(timezone.utc)
+    icons = ["02d", "10d", "04d"]
+    maxes = [81, 78, 74]
+    mins = [64, 61, 58]
+    pops = [30, 70, 15]
+    return tuple(
+        ForecastDay(
+            label=(today + timedelta(days=i)).strftime("%a"),
+            icon_code=icons[i],
+            temp_max=maxes[i],
+            temp_min=mins[i],
+            precip_percent=pops[i],
+        )
+        for i in range(3)
+    )
+
+
 def sample_weather() -> WeatherReport:
     return WeatherReport(
         temp_current=72,
@@ -115,9 +129,5 @@ def sample_weather() -> WeatherReport:
         temp_min=64,
         precip_percent=30,
         observed_at=datetime.now(timezone.utc),
-        forecast=(
-            ForecastDay("Today", "02d", 81, 64, 30),
-            ForecastDay("Tomorrow", "10d", 78, 61, 70),
-            ForecastDay("Thu", "04d", 74, 58, 15),
-        ),
+        forecast=_sample_forecast_days(),
     )

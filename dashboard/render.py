@@ -232,47 +232,42 @@ def _draw_calendar(draw: ImageDraw.ImageDraw, family: FamilyDashboard, now: date
     return y
 
 
-def _draw_grocery(draw: ImageDraw.ImageDraw, family: FamilyDashboard, start_y: int):
+def _draw_stocks(draw: ImageDraw.ImageDraw, family: FamilyDashboard, start_y: int):
     x, w = 342, 438
-    y = max(176, start_y + 10)
-    _draw_section_title(draw, (x, y), "Grocery", w)
+    y = max(200, start_y + 10)
+    _draw_section_title(draw, (x, y), "Stocks", w)
     y += 44
-    if not family.grocery:
-        draw.text((x, y), "Grocery list is empty", font=_font(23), fill=BLACK)
-        return y + 34
-
-    col_w = 205
-    row_h = 31
-    max_rows = 4
-    shown = family.grocery[: max_rows * 2]
-    for idx, item in enumerate(shown):
-        col = idx // max_rows
-        row = idx % max_rows
-        ix = x + col * (col_w + 24)
-        iy = y + row * row_h
-        text = f"□ {item.quantity + ' ' if item.quantity else ''}{item.title}"
-        _draw_fixed_bold(draw, (ix, iy), text, col_w, 23)
-    if len(family.grocery) > len(shown):
-        _draw_fitted(draw, (x + col_w + 24, y + (max_rows - 1) * row_h), f"+ {len(family.grocery) - len(shown)} more", col_w, 18, min_size=14)
-    return y + max_rows * row_h
+    if not family.stocks:
+        draw.text((x, y), "No stock data", font=_font(21), fill=BLACK)
+        return y + 30
+    font = _font(21)
+    row_h = 26
+    for stock in family.stocks[:3]:
+        arrow = "▲" if stock.change_pct >= 0 else "▼"
+        sign = "+" if stock.change_pct >= 0 else ""
+        price_str = f"${stock.price:,.2f}"
+        pct_str = f"{arrow} {sign}{stock.change_pct:.1f}%"
+        _draw_fixed_bold(draw, (x, y), stock.ticker, 90, 21)
+        _draw_fixed_bold(draw, (x + 110, y), price_str, 150, 21)
+        _draw_fixed_bold(draw, (x + 280, y), pct_str, 160, 21)
+        y += row_h
+    return y
 
 
 def _draw_fact(draw: ImageDraw.ImageDraw, family: FamilyDashboard, start_y: int, reminder: FactBlock | None = None):
     x, w = 342, 438
-    y = max(start_y + 6, 354)
+    y = max(start_y + 6, 316)
     if reminder is not None:
         fact_title = reminder.title
         fact_text = reminder.text
     else:
         fact = family.random_fact or family.on_this_day
         if not fact:
-            fact_title = "Quick add"
-            fact_text = "Add groceries from Discord, Alexa, or the web app."
-        else:
-            fact_title = fact.title
-            fact_text = fact.text
+            return
+        fact_title = fact.title
+        fact_text = fact.text
     _draw_section_title(draw, (x, y), fact_title, w)
-    _draw_wrapped_bold(draw, (x, y + 45), fact_text, w, 3, 23, line_gap=2)
+    _draw_wrapped_bold(draw, (x, y + 45), fact_text, w, 3, 21, line_gap=2)
 
 
 def render_dashboard(report: WeatherReport, settings: Settings, now: datetime | None = None, family: FamilyDashboard | None = None, reminder: FactBlock | None = None) -> Image.Image:
@@ -286,8 +281,8 @@ def render_dashboard(report: WeatherReport, settings: Settings, now: datetime | 
 
     _draw_weather(draw, image, report, settings, now)
     calendar_end = _draw_calendar(draw, family, now)
-    grocery_end = _draw_grocery(draw, family, calendar_end)
-    _draw_fact(draw, family, grocery_end, reminder=reminder)
+    stocks_end = _draw_stocks(draw, family, calendar_end)
+    _draw_fact(draw, family, stocks_end, reminder=reminder)
 
     updated = f"UPDATED {now.strftime('%I:%M %p').lstrip('0')}"
     updated_font = _font(15)

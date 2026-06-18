@@ -5,7 +5,7 @@ import threading
 from datetime import datetime
 
 from .config import PROJECT_ROOT
-from .dashboard_data import CalendarEvent, FactBlock, FamilyDashboard, GroceryItem
+from .dashboard_data import CalendarEvent, FactBlock, FamilyDashboard, StockQuote
 
 _CACHE_FILE = PROJECT_ROOT / "data" / "cache.json"
 _lock = threading.Lock()
@@ -50,7 +50,7 @@ def get_family() -> FamilyDashboard:
     try:
         return FamilyDashboard(
             calendar=[CalendarEvent(**e) for e in (d.get("calendar") or [])],
-            grocery=[GroceryItem(**g) for g in (d.get("grocery") or [])],
+            stocks=[StockQuote(**s) for s in (d.get("stocks") or [])],
             on_this_day=FactBlock(**d["on_this_day"]) if d.get("on_this_day") else None,
             random_fact=FactBlock(**d["random_fact"]) if d.get("random_fact") else None,
         )
@@ -63,9 +63,9 @@ def set_family(family: FamilyDashboard) -> None:
         data = _load()
         data["family"] = {
             "calendar": [{"summary": e.summary, "date": e.date, "time": e.time} for e in family.calendar],
-            "grocery": [
-                {"title": g.title, "quantity": g.quantity, "category": g.category, "store": g.store}
-                for g in family.grocery
+            "stocks": [
+                {"ticker": s.ticker, "price": s.price, "change_pct": s.change_pct}
+                for s in family.stocks
             ],
             "on_this_day": {"title": family.on_this_day.title, "text": family.on_this_day.text}
             if family.on_this_day else None,
