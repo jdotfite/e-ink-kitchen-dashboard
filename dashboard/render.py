@@ -260,9 +260,11 @@ def _draw_fact(draw: ImageDraw.ImageDraw, family: FamilyDashboard, start_y: int,
     else:
         fact = family.random_fact or family.on_this_day
         if not fact:
-            return
-        fact_title = fact.title
-        fact_text = fact.text
+            fact_title = "Did you know?"
+            fact_text = "Set GOOGLE_CALENDAR_ICAL_URL and STOCK_TICKERS in .env on the Pi."
+        else:
+            fact_title = fact.title
+            fact_text = fact.text
     _draw_section_title(draw, (x, y), fact_title, w)
     _draw_wrapped_bold(draw, (x, y + 45), fact_text, w, 3, 21, line_gap=2)
 
