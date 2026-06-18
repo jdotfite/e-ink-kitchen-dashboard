@@ -156,11 +156,8 @@ def _trash_today(settings: Settings, now: datetime) -> bool:
 
 def _day_label(date_text: str, now: datetime) -> str:
     today = now.strftime("%Y-%m-%d")
-    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
     if date_text == today:
         return "Today"
-    if date_text == tomorrow:
-        return "Tomorrow"
     try:
         return datetime.fromisoformat(date_text).strftime("%a")
     except ValueError:
