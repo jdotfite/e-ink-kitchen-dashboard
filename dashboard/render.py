@@ -13,6 +13,7 @@ ASSET_DIR = PROJECT_ROOT / "assets"
 FONT_PATH = ASSET_DIR / "font" / "Font.ttc"
 ICON_DIR = ASSET_DIR / "icons"
 BLACK = 0
+BORDER = 17   # #111111
 WHITE = 255
 
 
@@ -275,8 +276,8 @@ def render_dashboard(report: WeatherReport, settings: Settings, now: datetime | 
     image = Image.new("L", (WIDTH, HEIGHT), WHITE)
     draw = ImageDraw.Draw(image)
 
-    draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), outline=BLACK, width=3)
-    draw.line((320, 0, 320, HEIGHT), fill=BLACK, width=3)
+    draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), outline=BORDER, width=3)
+    draw.line((320, 0, 320, HEIGHT), fill=BORDER, width=3)
 
     _draw_weather(draw, image, report, settings, now)
     calendar_end = _draw_calendar(draw, family, now)
@@ -292,4 +293,4 @@ def render_dashboard(report: WeatherReport, settings: Settings, now: datetime | 
     draw.rectangle((box_x, box_y, WIDTH - 1, HEIGHT - 1), fill=BLACK)
     draw.text((box_x + 11, box_y + 5), updated, font=updated_font, fill=WHITE)
 
-    return image.convert("1")
+    return image
